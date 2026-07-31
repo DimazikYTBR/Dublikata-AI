@@ -1,5 +1,3 @@
 fastapi
 uvicorn
-requests
 pydantic
-llama-cpp-python

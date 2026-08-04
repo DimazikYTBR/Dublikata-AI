@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 
-app = FastAPI(title="Dublikata API NeuralCore v1.3 Ultra")
+app = FastAPI(title="Dublikata API NeuralCore v1.4 Ultra")
 
-SECRET_API_KEY = "dublikata_ultra_secret_key_2026"
+SECRET_API_KEY = "dublikata_AI_NeuralCore_ultra:82783893ajdhihgwiudhlkdshw"
 
 @app.get("/")
 def root_index():

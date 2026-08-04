@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 
-app = FastAPI(title="Dublikata API Gateway v1.6")
+app = FastAPI(title="Dublikata API NeuralCore v1.3 Ultra")
 
 SECRET_API_KEY = "dublikata_ultra_secret_key_2026"
 

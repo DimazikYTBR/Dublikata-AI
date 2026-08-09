@@ -69,7 +69,7 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
-    except Exception as e:
+    except exception as e:
         # Возвращаем текст ошибки СТРОГО в поле detail, чтобы бот её показал
         raise HTTPException(status_code=500, detail=f"CRASH: {str(e)}")
 

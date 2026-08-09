@@ -31,18 +31,22 @@ def download_weights_and_compile():
         except Exception as e:
             print(f"Ошибка скачивания весов: {e}")
 
-    # 2. Если бинарника нет, но есть исходники на C++ — компилируем их прямо на сервере!
-    if not os.path.exists(BINARY_PATH) and (os.path.exists(SOURCE_PATH) or os.path.exists("alfavit.cpp")):
-        print("Бинарник не найден, компилируем из исходников...")
+        # 2. Если бинарника нет, компилируем его прямо на сервере с проверкой
+    if not os.path.exists(BINARY_PATH):
+        print("Бинарник не найден, запускаем компиляцию...")
         compile_result = subprocess.run(
             ["g++", "-O3", SOURCE_PATH, "alfavit.cpp", "-o", BINARY_PATH],
             capture_output=True,
             text=True
         )
+        print(f"STDOUT компиляции: {compile_result.stdout}")
+        print(f"STDERR компиляции: {compile_result.stderr}")
+        
         if compile_result.returncode != 0:
-            print(f"Ошибка компиляции: {compile_result.stderr}")
+            raise RuntimeError(f"КРИТИЧЕСКАЯ ОШИБКА КОМПИЛЯЦИИ:\n{compile_result.stderr}")
         else:
             print("Бинарник успешно скомпилирован на Render!")
+
 
 # Инициализация при старте
 download_weights_and_compile()

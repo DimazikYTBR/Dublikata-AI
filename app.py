@@ -79,7 +79,7 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
-        try:
+    try:
         result = subprocess.run(
             [BINARY_PATH],
             capture_output=True,
@@ -87,7 +87,6 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
             timeout=10
         )
         
-        # ЕСЛИ ПРОЦЕСС ВЕРНУЛ ОШИБКУ — возвращаем её текст в Telegram!
         if result.returncode != 0:
             error_msg = result.stderr.strip() or result.stdout.strip() or f"Exit code {result.returncode}"
             raise HTTPException(status_code=500, detail=f"C++ Crash: {error_msg}")

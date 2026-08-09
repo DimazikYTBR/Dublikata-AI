@@ -31,8 +31,8 @@ def download_weights_and_compile():
         except Exception as e:
             print(f"Ошибка скачивания весов: {e}")
 
-        # 2. Проверяем наличие исходников перед компиляцией
-        if not os.path.exists(BINARY_PATH):
+    # 2. Проверяем наличие исходников и компилируем
+    if not os.path.exists(BINARY_PATH):
         print(f"Поиск файлов: {SOURCE_PATH} -> {os.path.exists(SOURCE_PATH)}, alfavit.cpp -> {os.path.exists('alfavit.cpp')}")
         
         if not os.path.exists(SOURCE_PATH) or not os.path.exists("alfavit.cpp"):
@@ -53,8 +53,6 @@ def download_weights_and_compile():
             raise RuntimeError(f"КРИТИЧЕСКАЯ ОШИБКА КОМПИЛЯЦИИ:\n{compile_result.stderr}")
         else:
             print("Бинарник успешно скомпилирован на Render!")
-
-
 
 # Инициализация при старте
 download_weights_and_compile()
@@ -82,7 +80,6 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
     try:
-        # Запускаем наш скомпилированный C++ модуль генерации
         result = subprocess.run(
             [BINARY_PATH],
             capture_output=True,
@@ -94,7 +91,6 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
             raise HTTPException(status_code=500, detail=f"Subprocess error: {result.stderr.strip() or result.stdout.strip()}")
             
     except Exception as e:
-        # Возвращаем текст ошибки СТРОГО в поле detail, чтобы бот её показал
         raise HTTPException(status_code=500, detail=f"CRASH: {str(e)}")
  
     return {

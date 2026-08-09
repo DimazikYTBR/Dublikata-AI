@@ -31,11 +31,11 @@ def download_weights_and_compile():
         except Exception as e:
             print(f"Ошибка скачивания весов: {e}")
 
-    # 2. Если бинарника нет, но есть исходник на C++ — компилируем его прямо на сервере!
-    if not os.path.exists(BINARY_PATH) and os.path.exists(SOURCE_PATH):
-        print("Бинарник не найден, компилируем из исходника...")
+    # 2. Если бинарника нет, но есть исходники на C++ — компилируем их прямо на сервере!
+    if not os.path.exists(BINARY_PATH) and (os.path.exists(SOURCE_PATH) or os.path.exists("alfavit.cpp")):
+        print("Бинарник не найден, компилируем из исходников...")
         compile_result = subprocess.run(
-            ["g++", "-O3", SOURCE_PATH, "-o", BINARY_PATH],
+            ["g++", "-O3", SOURCE_PATH, "alfavit.cpp", "-o", BINARY_PATH],
             capture_output=True,
             text=True
         )

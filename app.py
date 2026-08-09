@@ -31,21 +31,29 @@ def download_weights_and_compile():
         except Exception as e:
             print(f"Ошибка скачивания весов: {e}")
 
-        # 2. Если бинарника нет, компилируем его прямо на сервере с проверкой
-    if not os.path.exists(BINARY_PATH):
+        # 2. Проверяем наличие исходников перед компиляцией
+        if not os.path.exists(BINARY_PATH):
+        print(f"Поиск файлов: {SOURCE_PATH} -> {os.path.exists(SOURCE_PATH)}, alfavit.cpp -> {os.path.exists('alfavit.cpp')}")
+        
+        if not os.path.exists(SOURCE_PATH) or not os.path.exists("alfavit.cpp"):
+            raise RuntimeError("Файлы исходного кода (.cpp) не найдены в корне проекта на Render!")
+
         print("Бинарник не найден, запускаем компиляцию...")
         compile_result = subprocess.run(
             ["g++", "-O3", SOURCE_PATH, "alfavit.cpp", "-o", BINARY_PATH],
             capture_output=True,
             text=True
         )
-        print(f"STDOUT компиляции: {compile_result.stdout}")
-        print(f"STDERR компиляции: {compile_result.stderr}")
+        
+        print(f"Return code: {compile_result.returncode}")
+        print(f"STDOUT компиляции: {repr(compile_result.stdout)}")
+        print(f"STDERR компиляции: {repr(compile_result.stderr)}")
         
         if compile_result.returncode != 0:
             raise RuntimeError(f"КРИТИЧЕСКАЯ ОШИБКА КОМПИЛЯЦИИ:\n{compile_result.stderr}")
         else:
             print("Бинарник успешно скомпилирован на Render!")
+
 
 
 # Инициализация при старте

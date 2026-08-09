@@ -64,18 +64,26 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
         raise HTTPException(status_code=403, detail="Неверный API-ключ Dublikata Studio!")
  
     if not os.path.exists(BINARY_PATH):
-        raise HTTPException(status_code=500, detail=f"Бинарник отсутствует даже после попытки компиляции.")
+        raise HTTPException(status_code=500, detail="Бинарник отсутствует даже после попытки компиляции.")
  
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
+    try:
+        # Запускаем наш скомпилированный C++ модуль генерации
+        result = subprocess.run(
+            [BINARY_PATH],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Subprocess error: {result.stderr.strip() or result.stdout.strip()}")
+            
     except Exception as e:
         # Возвращаем текст ошибки СТРОГО в поле detail, чтобы бот её показал
         raise HTTPException(status_code=500, detail=f"CRASH: {str(e)}")
-
-
-    if result.returncode != 0:
-        raise HTTPException(status_code=500, detail=f"Subprocess error: {result.stderr.strip() or result.stdout.strip()}")
  
     return {
         "status": "success",

@@ -134,22 +134,47 @@ struct TinyTextGenModel {
             if (logits[i] > max_logit) max_logit = logits[i];
         }
 
-        float sum_exp = 0.0f;
-        std::vector<float> probs(vocab_size);
+                float temperature = 0.8f;
         for (int i = 0; i < vocab_size; ++i) { 
-            probs[i] = std::exp(std::clamp(logits[i] - max_logit, -20.0f, 0.0f)); 
+            // Искусственно принижаем вероятность символа 'R' (код 82), если он слишком часто лезет
+            float penalty = (i == 82) ? -5.0f : 0.0f;
+            logits[i] += penalty;
+
+            probs[i] = std::exp(std::clamp((logits[i] - max_logit) / temperature, -20.0f, 0.0f)); 
             sum_exp += probs[i]; 
         }
 
-        if (sum_exp <= 0.0f) return 'A'; // Защита от деления на ноль
+        if (sum_exp <= 0.0f) return 'A';
 
+        // Предохранитель от бесконечного повторения одного символа
+        static int last_token = 0;
+        static int repeat_count = 0;
+        
         float r = static_cast<float>(rand()) / RAND_MAX * sum_exp;
         float cumul = 0.0f;
+        int chosen_token = 'X';
+        
         for (int i = 0; i < vocab_size; ++i) { 
             cumul += probs[i]; 
-            if (cumul >= r) return i; 
+            if (cumul >= r) { 
+                chosen_token = i; 
+                break;
+            } 
         }
-        return 'X';
+
+        // Если символ повторяется больше 3 раз подряд — принудительно меняем на пробел или случайную букву
+        if (chosen_token == last_token) {
+            repeat_count++;
+            if (repeat_count > 3) {
+                chosen_token = 'a' + (rand() % 26); // Рандомная латинская буква
+                repeat_count = 0;
+            }
+        } else {
+            repeat_count = 0;
+            last_token = chosen_token;
+        }
+
+        return chosen_token;
     }
 };
 

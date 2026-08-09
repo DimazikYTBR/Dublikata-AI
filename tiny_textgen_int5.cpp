@@ -54,11 +54,20 @@ struct TinyTextGenModel {
         hidden_size = std::clamp((int)std::floor(h), 16, 128); // Ограничим рамки для стабильности
     }
 
-    void allocate() {
-        w_embed.assign((size_t)vocab_size * hidden_size, 0.01f);
-        w_hidden.assign((size_t)hidden_size * hidden_size, 0.01f);
-        w_out.assign((size_t)hidden_size * vocab_size, 0.01f);
+        void allocate() {
+        std::mt19937 rng(42);
+        std::normal_distribution<float> dist(0.0f, 0.1f);
+
+        w_embed.resize((size_t)vocab_size * hidden_size);
+        for (auto& w : w_embed) w = dist(rng);
+
+        w_hidden.resize((size_t)hidden_size * hidden_size);
+        for (auto& w : w_hidden) w = dist(rng);
+
+        w_out.resize((size_t)hidden_size * vocab_size);
+        for (auto& w : w_out) w = dist(rng);
     }
+
 
     bool load_weights_int5(const std::string& filename) {
         std::ifstream file(filename, std::ios::binary | std::ios::ate);

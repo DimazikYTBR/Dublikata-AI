@@ -69,19 +69,10 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
-    try:
-        os.chmod(BINARY_PATH, 0o755)
-        
-        result = subprocess.run(
-            [BINARY_PATH],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=os.path.dirname(os.path.abspath(WEIGHTS_PATH)) or ".",
-        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Exception: {str(e)}")
- 
+        # Возвращаем текст ошибки СТРОГО в поле detail, чтобы бот её показал
+        raise HTTPException(status_code=500, detail=f"CRASH: {str(e)}")
+
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=f"Subprocess error: {result.stderr.strip() or result.stdout.strip()}")
  

@@ -50,12 +50,15 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
         raise HTTPException(status_code=403, detail="Неверный API-ключ Dublikata Studio!")
  
     if not os.path.exists(BINARY_PATH):
-        raise HTTPException(status_code=500, detail=f"Бинарник не найден: {BINARY_PATH}. Убедись, что он собирается или лежит в репозитории.")
+        raise HTTPException(status_code=500, detail=f"Бинарник не найден: {BINARY_PATH}.")
  
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
     try:
+        # Добавляем права на исполнение бинарника на всякий случай
+        os.chmod(BINARY_PATH, 0o755)
+        
         result = subprocess.run(
             [BINARY_PATH],
             capture_output=True,
@@ -63,11 +66,12 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
             timeout=30,
             cwd=os.path.dirname(os.path.abspath(WEIGHTS_PATH)) or ".",
         )
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail="Генерация не уложилась в таймаут")
+    except Exception as e:
+        # Возвращаем текст ошибки прямо в бот, чтобы увидеть её без лазания по логам
+        raise HTTPException(status_code=500, detail=f"Exception: {str(e)}")
  
     if result.returncode != 0:
-        raise HTTPException(status_code=500, detail=f"Ошибка генерации: {result.stderr.strip()}")
+        raise HTTPException(status_code=500, detail=f"Subprocess error: {result.stderr.strip() or result.stdout.strip()}")
  
     return {
         "status": "success",

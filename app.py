@@ -10,28 +10,42 @@ SECRET_API_KEY = os.environ.get("DUBLIKATA_API_KEY", "dublikata_AI_NeuralCore_ul
 
 BINARY_PATH = os.environ.get("TEXTGEN_BINARY", "./tiny_textgen")
 WEIGHTS_PATH = os.environ.get("TEXTGEN_WEIGHTS", "weights.bin")
+SOURCE_PATH = "tiny_textgen_int5.cpp"
 
-# Прямая ссылка для скачивания weights.bin с Google Диска
 WEIGHTS_DOWNLOAD_URL = os.environ.get(
     "WEIGHTS_URL", 
     "https://docs.google.com/uc?export=download&id=1Ph5gwo91MD9GC0AReys1TGDUOtobxiWb"
 )
 
-def download_weights_if_needed():
+def download_weights_and_compile():
+    # 1. Скачиваем веса, если их нет
     if not os.path.exists(WEIGHTS_PATH) and WEIGHTS_DOWNLOAD_URL:
-        print("Файл весов не найден локально, скачиваем с Google Диска...")
+        print("Скачиваем веса с Google Диска...")
         try:
             with httpx.Client(follow_redirects=True, timeout=60.0) as client:
                 response = client.get(WEIGHTS_DOWNLOAD_URL)
                 response.raise_for_status()
                 with open(WEIGHTS_PATH, "wb") as f:
                     f.write(response.content)
-            print("Веса успешно скачаны и сохранены!")
+            print("Веса успешно скачаны!")
         except Exception as e:
-            print(f"Ошибка при скачивании весов: {e}")
+            print(f"Ошибка скачивания весов: {e}")
 
-# Проверяем и скачиваем веса при запуске приложения на Render
-download_weights_if_needed()
+    # 2. Если бинарника нет, но есть исходник на C++ — компилируем его прямо на сервере!
+    if not os.path.exists(BINARY_PATH) and os.path.exists(SOURCE_PATH):
+        print("Бинарник не найден, компилируем из исходника...")
+        compile_result = subprocess.run(
+            ["g++", "-O3", SOURCE_PATH, "-o", BINARY_PATH],
+            capture_output=True,
+            text=True
+        )
+        if compile_result.returncode != 0:
+            print(f"Ошибка компиляции: {compile_result.stderr}")
+        else:
+            print("Бинарник успешно скомпилирован на Render!")
+
+# Инициализация при старте
+download_weights_and_compile()
 
 
 @app.get("/")
@@ -50,13 +64,12 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
         raise HTTPException(status_code=403, detail="Неверный API-ключ Dublikata Studio!")
  
     if not os.path.exists(BINARY_PATH):
-        raise HTTPException(status_code=500, detail=f"Бинарник не найден: {BINARY_PATH}.")
+        raise HTTPException(status_code=500, detail=f"Бинарник отсутствует даже после попытки компиляции.")
  
     if not os.path.exists(WEIGHTS_PATH):
         raise HTTPException(status_code=500, detail=f"Файл весов не найден: {WEIGHTS_PATH}.")
  
     try:
-        # Добавляем права на исполнение бинарника на всякий случай
         os.chmod(BINARY_PATH, 0o755)
         
         result = subprocess.run(
@@ -67,7 +80,6 @@ def proxy_generate(request: ProxyPromptRequest, x_api_key: str = Header(...)):
             cwd=os.path.dirname(os.path.abspath(WEIGHTS_PATH)) or ".",
         )
     except Exception as e:
-        # Возвращаем текст ошибки прямо в бот, чтобы увидеть её без лазания по логам
         raise HTTPException(status_code=500, detail=f"Exception: {str(e)}")
  
     if result.returncode != 0:

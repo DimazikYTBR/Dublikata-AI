@@ -54,7 +54,7 @@ struct TinyTextGenModel {
         hidden_size = std::clamp((int)std::floor(h), 16, 128); // Ограничим рамки для стабильности
     }
 
-        void allocate() {
+    void allocate() {
         std::mt19937 rng(42);
         std::normal_distribution<float> dist(0.0f, 0.1f);
 
@@ -67,7 +67,6 @@ struct TinyTextGenModel {
         w_out.resize((size_t)hidden_size * vocab_size);
         for (auto& w : w_out) w = dist(rng);
     }
-
 
     bool load_weights_int5(const std::string& filename) {
         std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -134,11 +133,15 @@ struct TinyTextGenModel {
             if (logits[i] > max_logit) max_logit = logits[i];
         }
 
-                float temperature = 0.8f;
+        float temperature = 0.8f;
+        float sum_exp = 0.0f;
+        std::vector<float> probs(vocab_size, 0.0f);
+
         for (int i = 0; i < vocab_size; ++i) { 
-            // Искусственно принижаем вероятность символа 'R' (код 82), если он слишком часто лезет
-            float penalty = (i == 82) ? -5.0f : 0.0f;
-            logits[i] += penalty;
+            // Жесткий банхаммер на букву 'R' (код 82)
+            if (i == 82) {
+                logits[i] = -1e9f;
+            }
 
             probs[i] = std::exp(std::clamp((logits[i] - max_logit) / temperature, -20.0f, 0.0f)); 
             sum_exp += probs[i]; 
@@ -162,11 +165,11 @@ struct TinyTextGenModel {
             } 
         }
 
-        // Если символ повторяется больше 3 раз подряд — принудительно меняем на пробел или случайную букву
+        // Если символ повторяется больше 3 раз подряд — принудительно меняем на случайную букву
         if (chosen_token == last_token) {
             repeat_count++;
             if (repeat_count > 3) {
-                chosen_token = 'a' + (rand() % 26); // Рандомная латинская буква
+                chosen_token = 'a' + (rand() % 26);
                 repeat_count = 0;
             }
         } else {
@@ -183,8 +186,6 @@ int main() {
     TinyTextGenModel model;
     std::string weights_file = "weights.bin";
 
-    // Даже если веса не найдутся или битые — программа не упадет с ошибкой 1, 
-    // а инициализирует сеть дефолтными значениями и выдаст осмысленный ответ.
     model.load_weights_int5(weights_file);
 
     int seed_token = 'H';
@@ -194,11 +195,10 @@ int main() {
     int current_token = seed_token;
     for (int step = 0; step < max_length; ++step) {
         current_token = model.forward(current_token, context);
-        // Выводим только печатные символы или перенос строки, чтобы не ломать stdout
         if ((current_token >= 32 && current_token <= 126) || current_token == 10) {
             std::cout << static_cast<char>(current_token);
         } else {
-            std::cout << "ai"; // Заглушка для нечитаемых символов
+            std::cout << "ai";
         }
     }
     std::cout << std::endl;
